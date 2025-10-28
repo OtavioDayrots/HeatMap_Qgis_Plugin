@@ -1,0 +1,7 @@
+[general]
+name=CTCO
+description=Plugin de atalho para funções do QGIS: Heatmap (com filtro aplicado na camada), paletas BCYR, importação de projeto (.qgs/.qgz) e menu direto no ícone.
+version=2.1
+qgisMinimumVersion=3.0
+author=José Otávio Alves
+email=joseotavioalves321@gmail.com
