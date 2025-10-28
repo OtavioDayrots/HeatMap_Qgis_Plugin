@@ -1,5 +1,7 @@
 # Plugin CTCO - Versão Modularizada
 
+Plugin CTCO para QGIS que acelera a criação e análise de mapas de calor. Oferece um fluxo simples para gerar heatmaps a partir de camadas de pontos, aplicar paletas de cores otimizadas (BCYR), filtrar dados diretamente na camada antes do processamento e importar projetos QGIS (.qgs/.qgz). Interface enxuta com menu aberto direto no ícone da barra de ferramentas.
+
 ## 📁 Estrutura do Projeto
 
 ```
@@ -95,73 +97,3 @@ CTCO_plugin/
 ### **Aplicar Cores:**
 1. **UI Manager** → `ColorService.apply_bcyr_colormap()`
 2. **Service** → Aplicação direta de cores
-
-## ✅ Benefícios da Modularização
-
-### **1. Manutenibilidade**
-- Cada arquivo tem uma responsabilidade específica
-- Fácil localizar e corrigir problemas
-- Código mais limpo e organizado
-
-### **2. Escalabilidade**
-- Fácil adicionar novos algoritmos
-- Fácil adicionar novas funcionalidades de UI
-- Reutilização de código entre módulos
-
-### **3. Testabilidade**
-- Cada módulo pode ser testado independentemente
-- Funções isoladas são mais fáceis de testar
-- Debugging mais eficiente
-
-### **4. Legibilidade**
-- Código mais fácil de entender
-- Documentação clara de cada módulo
-- Separação clara de responsabilidades
-
-## 🔧 Como Adicionar Novas Funcionalidades
-
-### **Adicionar Novo Algoritmo:**
-1. Criar nova classe em `algorithms.py`
-2. Adicionar método estático com lógica
-3. Adicionar ação em `ui_manager.py`
-4. Conectar callback
-
-### **Adicionar Nova Validação:**
-1. Adicionar função em `utils.py`
-2. Usar em `algorithms.py`
-3. Testar isoladamente
-
-### **Adicionar Nova Interface:**
-1. Adicionar método em `UIManager`
-2. Chamar em `setup_ui()`
-3. Implementar callback
-
-## 📊 Comparação Antes/Depois
-
-| Aspecto | Antes | Depois |
-|---------|-------|--------|
-| **Arquivos** | 5 arquivos | 12 arquivos organizados |
-| **Linhas por arquivo** | 50-245 linhas | 30-100 linhas |
-| **Responsabilidades** | Misturadas | Separadas por pasta |
-| **Manutenção** | Complexa | Simples |
-| **Testabilidade** | Difícil | Fácil |
-| **Escalabilidade** | Limitada | Excelente |
-| **Arquitetura** | Monolítica | MVC + Services |
-
-## 🚀 Próximos Passos Sugeridos
-
-1. **Adicionar testes unitários** para cada módulo
-2. **Criar configuração** para parâmetros personalizáveis
-3. **Implementar logging** mais robusto
-4. **Adicionar validação** de entrada mais sofisticada
-5. **Criar documentação** de API para cada módulo
-
-## 🔄 Migração
-
-A versão modularizada é **100% compatível** com a versão anterior:
-- Mesma funcionalidade
-- Mesma interface
-- Mesma performance
-- Código mais organizado
-
-O plugin continua funcionando exatamente igual, mas agora é muito mais fácil de manter e expandir!
