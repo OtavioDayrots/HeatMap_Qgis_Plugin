@@ -32,10 +32,10 @@ class ExportService:
     @staticmethod
     def export_map_with_options(iface, options):
         filters = {
-            "GEOTIFF": "GeoTIFF (*.tif *.tiff)",
             "PNG": "PNG (*.png)",
             "JPEG": "JPEG (*.jpg *.jpeg)",
             "SVG": "SVG (*.svg)",
+            "GEOTIFF": "GeoTIFF (*.tif *.tiff)",
             "PDF": "PDF (*.pdf)",
         }
         path, _ = QFileDialog.getSaveFileName(None, "Salvar mapa", "", filters.get(options.fmt, "PNG (*.png)"))
@@ -43,7 +43,7 @@ class ExportService:
             return
 
         # Garantir extensão conforme formato escolhido
-        ext_map = {"GEOTIFF": ".tif", "PNG": ".png", "JPEG": ".jpg", "SVG": ".svg", "PDF": ".pdf"}
+        ext_map = {"PNG": ".png", "JPEG": ".jpg", "SVG": ".svg", "GEOTIFF": ".tif", "PDF": ".pdf"}
         desired_ext = ext_map.get(options.fmt, ".png")
         base, ext = os.path.splitext(path)
         if not ext:
@@ -60,7 +60,7 @@ class ExportService:
         page_width = page_size.width()
         page_height = page_size.height()
 
-        # Mapa ocupando a página com margens e um rodapé reservado para legenda/escala/data
+        # Mapa ocupando a página com margens e um rodapé reservado para legenda/data
         margin_mm = 5.0
         footer_height_mm = 60.0  # área branca inferior para elementos cartográficos
         map_width = page_width - (2 * margin_mm)
@@ -71,20 +71,6 @@ class ExportService:
         map_item.attemptMove(QgsLayoutPoint(margin_mm, margin_mm, QgsUnitTypes.LayoutMillimeters))
         map_item.attemptResize(QgsLayoutSize(map_width, map_height, QgsUnitTypes.LayoutMillimeters))
         map_item.setExtent(iface.mapCanvas().extent())
-
-        # Barra de escala
-        if getattr(options, "include_scalebar", True):
-            scalebar = QgsLayoutItemScaleBar(layout)
-            scalebar.setLinkedMap(map_item)
-            scalebar.setStyle("Single Box")
-            scalebar.setNumberOfSegments(4)
-            scalebar.setNumberOfSegmentsLeft(0)
-            scalebar.setUnits(QgsUnitTypes.DistanceMeters)
-            scalebar.setUnitLabel("m")
-            scalebar.refresh()
-            layout.addLayoutItem(scalebar)
-            # posicionar na área branca inferior, à direita da legenda
-            scalebar.attemptMove(QgsLayoutPoint(margin_mm + 65.0, page_height - margin_mm - 6, QgsUnitTypes.LayoutMillimeters))
 
         # Legenda
         if getattr(options, "include_legend", True):
@@ -98,9 +84,9 @@ class ExportService:
             legend.setSymbolWidth(symbol_size_mm)
             legend.setSymbolHeight(symbol_size_mm)
             layout.addLayoutItem(legend)
-            # posicionar na área branca inferior, à esquerda, sem sobrepor escala/data
-            legend_height = max(30.0, footer_height_mm - 10.0)
-            legend.attemptResize(QgsLayoutSize(60, legend_height, QgsUnitTypes.LayoutMillimeters))
+            # posicionar na área branca inferior, à esquerda, sem sobrepor data
+            legend_height = max(10.0, footer_height_mm - 10.0)
+            legend.attemptResize(QgsLayoutSize(40, legend_height, QgsUnitTypes.LayoutMillimeters))
             legend.attemptMove(
                 QgsLayoutPoint(
                     margin_mm,
@@ -170,6 +156,7 @@ class ExportService:
         elif options.fmt in ("PNG", "JPEG"):
             img_settings = QgsLayoutExporter.ImageExportSettings()
             img_settings.dpi = int(getattr(options, "dpi", 300))
+            img_settings.generateWorldFile = True  # cria .pgw/.jgw com a extensão real
             res = exporter.exportToImage(path, img_settings)
             if res != QgsLayoutExporter.Success:
                 QMessageBox.critical(None, "Erro", f"Falha ao exportar imagem. Código: {res}\nCaminho: {path}")

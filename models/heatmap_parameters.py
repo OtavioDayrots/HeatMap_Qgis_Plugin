@@ -17,7 +17,7 @@ class HeatmapParameters:
     pixel_size: float
     transparent: int
     weight_field: str
-    kernel: int
+    kernel: str
     decay: int
     output_value: int
     description: str
@@ -44,7 +44,7 @@ class HeatmapParameters:
                 pixel_size=3.0,
                 transparent=60,
                 weight_field='',
-                kernel=0,  # Quartic
+                kernel= "Quartic",
                 decay=0,
                 output_value=0,  # Raw
                 description='Muitos pontos - Performance otimizada'
@@ -55,7 +55,7 @@ class HeatmapParameters:
                 pixel_size=2.0,
                 transparent=60,
                 weight_field='',
-                kernel=0,
+                kernel= "Quartic",
                 decay=0,
                 output_value=0,
                 description='Muitos pontos - Qualidade média'
@@ -66,30 +66,11 @@ class HeatmapParameters:
                 pixel_size=1.0,
                 transparent=60,
                 weight_field='',
-                kernel=0,
+                kernel= "Quartic",
                 decay=0,
                 output_value=0,
                 description='Poucos pontos - Alta qualidade'
             )
-    
-    @classmethod
-    def get_fast_parameters(cls) -> 'HeatmapParameters':
-        """
-        Retorna parâmetros para versão rápida do heatmap
-        
-        Returns:
-            HeatmapParameters: Parâmetros otimizados para velocidade
-        """
-        return cls(
-            radius=100,
-            pixel_size=1.0,
-            transparent=60,
-            weight_field='',
-            kernel=0,
-            decay=0,
-            output_value=0,
-            description='Versão rápida - Máxima performance'
-        )
     
     def to_processing_params(self, input_layer) -> Dict[str, Any]:
         """

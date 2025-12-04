@@ -18,6 +18,7 @@ from qgis.PyQt.QtWidgets import (
     QPushButton,
     QFileDialog,
 )
+from qgis.PyQt.QtGui import QFontMetrics
 
 from ..services.color_service import ColorService
 
@@ -45,19 +46,6 @@ class HeatmapConfigDialog(QDialog):
         self.transparent_input.setRange(0, 100)
         self.transparent_input.setValue(60)
 
-        self.kernel_input = QComboBox()
-        # QGIS enums esperados pelo algoritmo
-        self.kernel_map = {
-            "Quartic (padrão)": 0,
-            "Triangular": 1,
-            "Uniform": 2,
-            "Epanechnikov": 3,
-            "Gaussian": 4,
-        }
-        for name in self.kernel_map.keys():
-            self.kernel_input.addItem(name)
-        self.kernel_input.setCurrentIndex(0)
-
         self.palette_input = QComboBox()
         self.palette_names = list(ColorService.get_available_colormaps().keys())
         for name in self.palette_names:
@@ -73,19 +61,56 @@ class HeatmapConfigDialog(QDialog):
         # Construtor de filtro (anti-erros)
         self.field_combo = QComboBox()
         self.op_combo = QComboBox()
-        self.value_input = QLineEdit()
-        self.btn_add_clause = QPushButton("Adicionar")
+        self.value_input = QComboBox()
+        self.value_input.setEditable(True)  # Permite digitação além de seleção
+        self.operator_combo = QComboBox()
+        self.operator_combo.addItem("E", userData="AND")
+        self.operator_combo.addItem("OU", userData="OR")
+        self.operator_combo.setCurrentIndex(0)  # Padrão: AND
+        self.btn_add_clause = QPushButton("+")
+        self.btn_add_clause.setFixedSize(30, 30)
+        self.btn_add_clause.setStyleSheet(
+            "QPushButton {"
+            "background-color: #2ecc71;"
+            "color: #ffffff;"
+            "font-size: 16px;"
+            "font-weight: bold;"
+            "border: 1px solid #000000;"
+            "border-radius: 4px;"
+            "padding: 0;"
+            "}"
+            "QPushButton:hover { background-color: #27ae60; }"
+        )
+
+        # Ajustes para que o texto caiba melhor
+        for cb in (self.field_combo, self.op_combo, self.value_input):
+            try:
+                cb.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            except Exception:
+                pass
+        self.value_input.setMinimumContentsLength(24)
 
         self._populate_fields()
         self.field_combo.currentIndexChanged.connect(self._refresh_ops_for_field)
+        self.field_combo.currentIndexChanged.connect(self._refresh_values_for_field)
         self.btn_add_clause.clicked.connect(self._append_clause)
 
         form = QFormLayout()
-        form.addRow("Raio (m)", self.radius_input)
-        form.addRow("Tamanho do pixel (m)", self.pixel_input)
-        form.addRow("Transparência (%)", self.transparent_input)
-        form.addRow("Kernel", self.kernel_input)
-        form.addRow("Paleta", self.palette_input)
+        row = QHBoxLayout()
+        row.addWidget(QLabel("Raio (m)"))
+        row.addWidget(self.radius_input)
+        row.addSpacing(12)
+        row.addWidget(QLabel("Tamanho do pixel (m)"))
+        row.addWidget(self.pixel_input)
+        form.addRow(row)
+
+        row2 = QHBoxLayout()
+        row2.addWidget(QLabel("Transparência (%)"))
+        row2.addWidget(self.transparent_input)
+        row2.addSpacing(12)
+        row2.addWidget(QLabel("Paleta"))
+        row2.addWidget(self.palette_input)
+        form.addRow(row2)
 
         # Linha do construtor de filtro
         fb_row = QHBoxLayout()
@@ -95,8 +120,13 @@ class HeatmapConfigDialog(QDialog):
         fb_row.addWidget(self.btn_add_clause)
         form.addRow("Filtro (construtor)", fb_row)
 
-        # Campo de expressão completa
-        form.addRow("Filtro (expressão)", self.filter_input)
+        # Campo de expressão completa com modo AND/OR
+        filter_row = QHBoxLayout()
+        filter_row.addWidget(self.filter_input, stretch=1)  # Campo de expressão ocupa mais espaço
+        # Define largura fixa para o combo de modo para não ocupar muito espaço
+        self.operator_combo.setMaximumWidth(80)
+        filter_row.addWidget(self.operator_combo)
+        form.addRow("Filtro (expressão)", filter_row)
 
         # Pasta de saída opcional (vazio = temporário)
         out_row = QHBoxLayout()
@@ -106,7 +136,7 @@ class HeatmapConfigDialog(QDialog):
         self.btn_browse_out.clicked.connect(self._choose_output_dir)
         out_row.addWidget(self.output_dir_input)
         out_row.addWidget(self.btn_browse_out)
-        form.addRow("Pasta para salvar (opcional)", out_row)
+        form.addRow("Pasta (opcional)", out_row)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self.accept)
@@ -124,6 +154,7 @@ class HeatmapConfigDialog(QDialog):
             self.field_combo.setEnabled(False)
             self.op_combo.setEnabled(False)
             self.value_input.setEnabled(False)
+            self.operator_combo.setEnabled(False)
             self.btn_add_clause.setEnabled(False)
             return
         try:
@@ -132,30 +163,83 @@ class HeatmapConfigDialog(QDialog):
         except Exception:
             pass
         self._refresh_ops_for_field()
+        self._refresh_values_for_field()
 
     def _refresh_ops_for_field(self):
-        """Atualiza operadores sugeridos conforme tipo do campo."""
+        """Atualiza operadores sugeridos."""
         self.op_combo.clear()
+        # Todos os operadores disponíveis (sem filtrar por tipo de campo)
+        numeric_ops = [">", ">=", "<", "<=", "=", "!=", "IS NULL", "IS NOT NULL"]
+        text_ops = ["ILIKE", "LIKE"]
+        # Combina todos os operadores, removendo duplicatas
+        all_ops = numeric_ops + [op for op in text_ops if op not in numeric_ops]
+        for op in all_ops:
+            self.op_combo.addItem(op)
+
+    def _refresh_values_for_field(self):
+        """Preenche valores únicos do campo selecionado se for campo de texto/discreto."""
+        self.value_input.clear()
+        self.value_input.setEditable(True)
+        
+        if not self._layer or not hasattr(self._layer, 'fields'):
+            return
+        
         f_name = self.field_combo.currentText()
-        f_type = None
+        if not f_name:
+            return
+        
         try:
             idx = self._layer.fields().indexFromName(f_name)
-            if idx >= 0:
-                f_type = self._layer.fields().field(idx).type()
+            if idx < 0:
+                return
+            
+            # Para campos de texto/discretos, busca uma AMOSTRA de valores únicos
+            # Isso imita o comportamento do botão "Amostra" da UI do QGIS.
+            max_values = 50  # amostra reduzida para performance
+            unique_values = set()
+            provider = getattr(self._layer, 'dataProvider', None)
+
+            try:
+                if provider and callable(provider):
+                    # dataProvider é método nas camadas; obtemos a instância
+                    dp = self._layer.dataProvider()
+                    # Alguns provedores expõem uniqueValues(field, limit)
+                    # limit=0 => sem limite; aqui aplicamos limite pequeno
+                    vals = dp.uniqueValues(idx, max_values)
+                    unique_values = {str(v) for v in vals if v is not None}
+                else:
+                    # Fallback: iterar com corte antecipado
+                    for feature in self._layer.getFeatures():
+                        value = feature.attribute(f_name)
+                        if value is not None:
+                            unique_values.add(str(value))
+                            if len(unique_values) >= max_values:
+                                break
+            except Exception:
+                # Se a API do provedor não suportar limite, cai no fallback simples
+                for feature in self._layer.getFeatures():
+                    value = feature.attribute(f_name)
+                    if value is not None:
+                        unique_values.add(str(value))
+                        if len(unique_values) >= max_values:
+                            break
+            
+            # Adiciona valores únicos ordenados ao combo
+            sorted_values = sorted(unique_values)
+            for val in sorted_values:
+                self.value_input.addItem(val)
+            # Ajusta a largura do popup para o maior item
+            self._resize_combo_popup_to_fit(self.value_input, sorted_values)
+                
         except Exception:
-            f_type = None
-        # Operadores básicos comuns
-        numeric_ops = [">", ">=", "<", "<=", "=", "!=", "IS NULL", "IS NOT NULL"]
-        text_ops = ["=", "!=", "ILIKE", "LIKE", "IS NULL", "IS NOT NULL"]
-        ops = numeric_ops if (f_type in (2, 3, 4, 5, 6, 7, 8)) else text_ops  # tipos numéricos comuns
-        for op in ops:
-            self.op_combo.addItem(op)
+            # Em caso de erro, apenas deixa o campo editável
+            pass
 
     def _append_clause(self):
         """Monta e insere uma cláusula no campo de expressão."""
         field = self.field_combo.currentText()
         op = self.op_combo.currentText()
-        val = self.value_input.text().strip()
+        val = self.value_input.currentText().strip()
         if not field or not op:
             return
         # Aspas em campos com caracteres especiais
@@ -180,15 +264,31 @@ class HeatmapConfigDialog(QDialog):
                     val_esc = f"%{val_esc}%"
                 clause = f"{field_expr} {op} '{val_esc}'"
         cur = self.filter_input.text().strip()
-        new_expr = clause if not cur else f"{cur} AND {clause}"
+        if not cur:
+            new_expr = clause
+        else:
+            operator = self.operator_combo.currentData() or self.operator_combo.currentText()
+            new_expr = f"{cur} {operator} {clause}"
         self.filter_input.setText(new_expr)
 
+    def _resize_combo_popup_to_fit(self, combo: QComboBox, texts):
+        """Ajusta a largura do popup do combo para caber o maior texto."""
+        try:
+            view = combo.view() if hasattr(combo, 'view') else None
+            fm = QFontMetrics(view.font() if view else combo.font())
+            max_width = 0
+            for t in texts or []:
+                max_width = max(max_width, fm.horizontalAdvance(str(t)))
+            if view and max_width:
+                # margem para barra de rolagem e padding
+                view.setMinimumWidth(max_width + 40)
+        except Exception:
+            pass
+
     def get_config(self) -> dict:
-        kernel_name = self.kernel_input.currentText()
         return {
             "radius": int(self.radius_input.value()),
             "pixel_size": float(self.pixel_input.value()),
-            "kernel": int(self.kernel_map.get(kernel_name, 0)),
             "palette": str(self.palette_input.currentText()),
             "filter_expr": str(self.filter_input.text()).strip() or None,
             "output_dir": str(self.output_dir_input.text()).strip() or None,

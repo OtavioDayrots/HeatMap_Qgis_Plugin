@@ -16,16 +16,6 @@ class HeatmapAlgorithm:
         
         Args:
             layer: Camada de pontos para processar
-            config: Dicionário de configuração opcional (raio, pixel, kernel, paleta, min/max)
+            config: Dicionário de configuração opcional (raio, pixel, paleta, min/max)
         """
         HeatmapService.run_heatmap(layer, config)
-    
-    @staticmethod
-    def run_heatmap_fast(layer):
-        """
-        Executa algoritmo de mapa de calor rápido
-        
-        Args:
-            layer: Camada de pontos para processar
-        """
-        HeatmapService.run_heatmap_fast(layer)

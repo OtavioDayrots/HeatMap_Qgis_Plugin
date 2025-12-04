@@ -101,7 +101,6 @@ class HeatmapConfigDialog(QDialog):
         # Campos para:
         # - Raio (slider)
         # - Tamanho do pixel (slider)
-        # - Tipo de kernel (dropdown)
         # - Preview das cores
 ```
 

@@ -45,7 +45,6 @@ CTCO_plugin/
 #### **heatmap_parameters.py**
 - `HeatmapParameters`: Classe de dados para parâmetros
 - `get_optimized_parameters()`: Parâmetros baseados no número de features
-- `get_fast_parameters()`: Parâmetros para versão rápida
 - `to_processing_params()`: Conversão para QGIS processing
 
 ### **🔧 Services (services/)**
@@ -54,7 +53,6 @@ CTCO_plugin/
 #### **heatmap_service.py**
 - `HeatmapService`: Lógica principal de heatmap
 - `run_heatmap()`: Execução com parâmetros otimizados
-- `run_heatmap_fast()`: Execução rápida
 - Integração com validação e cores
 
 #### **color_service.py**

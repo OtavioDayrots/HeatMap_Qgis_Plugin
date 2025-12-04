@@ -83,15 +83,6 @@ class UIManager:
             self._run_heatmap
         )
         self.menu.addAction(heatmap_action)
-        
-        # Heatmap Rápido
-        heatmap_fast_action = self.create_action(
-            "heatmap_fast",
-            "Mapa de Calor Rápido",
-            "heatmap_fast.webp",
-            self._run_heatmap_fast
-        )
-        self.menu.addAction(heatmap_fast_action)
 
         # Separador
         self.menu.addSeparator()
@@ -182,11 +173,6 @@ class UIManager:
         if dlg.exec_() == 1:  # Accepted
             config = dlg.get_config()
             HeatmapAlgorithm.run_heatmap(layer, config)
-    
-    def _run_heatmap_fast(self):
-        """Callback para executar heatmap rápido"""
-        layer = self.iface.activeLayer()
-        HeatmapAlgorithm.run_heatmap_fast(layer)
     
     def _show_heatmap_stats(self):
         layer = self.iface.activeLayer()
